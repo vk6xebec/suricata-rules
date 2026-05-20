@@ -1,0 +1,138 @@
+# ============================================================================
+# GENERIC SURICATA POLICY VISIBILITY RULES
+# File: generic-policy.rules
+# Version: 2026.05.20-r1
+# Scope: Generic, sanitised, public-safe Suricata rules
+#
+# Purpose:
+# - Provide reusable policy-visibility alerts that can be applied across VLANs.
+# - Avoid site-specific names, VLAN labels, hostnames, public IPs, private IPs,
+#   device names, organisation names, or other identifiable data.
+#
+# Deployment:
+# - Intended for pfSense Suricata "Extra rules".
+# - Uses only $HOME_NET, $EXTERNAL_NET, and generic protocol/port logic.
+# - All rules are alert-only.
+#
+# Notes:
+# - Keep environment-specific rules in local custom.rules, not this file.
+# - Do not add real subnets, device names, WAN addresses, or hostnames here.
+# - Tune via suppress/threshold lists, not by deleting useful visibility rules.
+#
+# SID allocation:
+# - 9900001-9900999 reserved for this generic public-safe ruleset.
+#
+# CHANGELOG:
+# 2026.05.20-r1:
+# - Initial sanitised generic policy ruleset.
+# - Added encrypted DNS, QUIC/HTTP3, management exposure, telemetry,
+#   service-discovery, and high-risk protocol visibility rules.
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# 01_ENCRYPTED_DNS_AND_RESOLVER_BYPASS_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"GENERIC POLICY DoT outbound observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900001; rev:1; metadata: policy encrypted_dns, protocol DoT, confidence Medium, response_action alert_only;)
+
+alert udp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"GENERIC POLICY DoQ candidate outbound observed on UDP/853"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900002; rev:1; metadata: policy encrypted_dns, protocol DoQ, confidence Medium, response_action alert_only;)
+
+alert udp $HOME_NET any -> $EXTERNAL_NET 784 (msg:"GENERIC POLICY DoQ candidate outbound observed on UDP/784"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900003; rev:1; metadata: policy encrypted_dns, protocol DoQ, confidence Medium, response_action alert_only;)
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET 443 (msg:"GENERIC POLICY DoH candidate outbound HTTPS observed"; flow:to_server; detection_filter:track by_src, count 20, seconds 300; classtype:policy-violation; sid:9900004; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence Low, response_action alert_only;)
+
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Cloudflare DoH SNI observed"; tls.sni; content:"cloudflare-dns.com"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900005; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence High, response_action alert_only;)
+
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Google DoH SNI observed"; tls.sni; content:"dns.google"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900006; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence High, response_action alert_only;)
+
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Quad9 DoH SNI observed"; tls.sni; content:"dns.quad9.net"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900007; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence High, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# 02_QUIC_HTTP3_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert udp $HOME_NET any -> $EXTERNAL_NET 443 (msg:"GENERIC POLICY QUIC or HTTP3 outbound UDP/443 observed"; detection_filter:track by_src, count 50, seconds 60; classtype:policy-violation; sid:9900101; rev:1; metadata: policy inspection_visibility, protocol QUIC, confidence Low, response_action alert_only;)
+
+alert udp $EXTERNAL_NET 443 -> $HOME_NET any (msg:"GENERIC POLICY QUIC or HTTP3 inbound response UDP/443 observed"; detection_filter:track by_dst, count 100, seconds 60; classtype:misc-activity; sid:9900102; rev:1; metadata: policy inspection_visibility, protocol QUIC, confidence Low, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# 03_MANAGEMENT_AND_REMOTE_ACCESS_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"GENERIC POLICY inbound SSH management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900201; rev:1; metadata: policy management_access, protocol SSH, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 23 (msg:"GENERIC POLICY inbound Telnet management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900202; rev:1; metadata: policy management_access, protocol Telnet, confidence High, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 3389 (msg:"GENERIC POLICY inbound RDP management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900203; rev:1; metadata: policy management_access, protocol RDP, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 5900 (msg:"GENERIC POLICY inbound VNC management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900204; rev:1; metadata: policy management_access, protocol VNC, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET [8080,8443,9443] (msg:"GENERIC POLICY inbound alternate web management port attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900205; rev:1; metadata: policy management_access, protocol HTTP, confidence Medium, response_action alert_only;)
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET [22,23,3389,5900] (msg:"GENERIC POLICY outbound remote-administration protocol observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900206; rev:1; metadata: policy egress_control, protocol remote_admin, confidence Medium, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# 04_TELEMETRY_AND_MONITORING_PROTOCOL_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 161 (msg:"GENERIC POLICY inbound SNMP polling attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900301; rev:1; metadata: policy telemetry_management, protocol SNMP, confidence High, response_action alert_only;)
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 162 (msg:"GENERIC POLICY inbound SNMP trap receiver attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900302; rev:1; metadata: policy telemetry_management, protocol SNMP, confidence Medium, response_action alert_only;)
+
+alert udp $HOME_NET any -> $EXTERNAL_NET 514 (msg:"GENERIC POLICY outbound syslog over UDP observed"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900303; rev:1; metadata: policy telemetry_management, protocol Syslog, confidence Low, response_action alert_only;)
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET 514 (msg:"GENERIC POLICY outbound syslog over TCP observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900304; rev:1; metadata: policy telemetry_management, protocol Syslog, confidence Low, response_action alert_only;)
+
+alert tcp $HOME_NET any -> $EXTERNAL_NET 6514 (msg:"GENERIC POLICY outbound syslog over TLS observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:misc-activity; sid:9900305; rev:1; metadata: policy telemetry_management, protocol Syslog_TLS, confidence Low, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# 05_IOT_DISCOVERY_AND_REFLECTION_SURFACE_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 1900 (msg:"GENERIC POLICY inbound SSDP/UPnP discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900401; rev:1; metadata: policy service_discovery, protocol SSDP, confidence High, response_action alert_only;)
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 5353 (msg:"GENERIC POLICY inbound mDNS discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900402; rev:1; metadata: policy service_discovery, protocol mDNS, confidence High, response_action alert_only;)
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 3702 (msg:"GENERIC POLICY inbound WS-Discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900403; rev:1; metadata: policy service_discovery, protocol WS_Discovery, confidence High, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 9100 (msg:"GENERIC POLICY inbound JetDirect printer service attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900404; rev:1; metadata: policy exposed_service, protocol JetDirect, confidence Medium, response_action alert_only;)
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 623 (msg:"GENERIC POLICY inbound IPMI/RMCP management attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900405; rev:1; metadata: policy management_access, protocol IPMI_RMCP, confidence High, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# 06_HIGH_RISK_SERVICE_EXPOSURE_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"GENERIC POLICY inbound SMB exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900501; rev:1; metadata: policy exposed_service, protocol SMB, confidence High, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 139 (msg:"GENERIC POLICY inbound NetBIOS session attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900502; rev:1; metadata: policy exposed_service, protocol NetBIOS, confidence High, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 1433 (msg:"GENERIC POLICY inbound MSSQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900503; rev:1; metadata: policy exposed_service, protocol MSSQL, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 3306 (msg:"GENERIC POLICY inbound MySQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900504; rev:1; metadata: policy exposed_service, protocol MySQL, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 5432 (msg:"GENERIC POLICY inbound PostgreSQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900505; rev:1; metadata: policy exposed_service, protocol PostgreSQL, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 6379 (msg:"GENERIC POLICY inbound Redis-compatible service exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900506; rev:1; metadata: policy exposed_service, protocol Redis, confidence Medium, response_action alert_only;)
+
+alert tcp $EXTERNAL_NET any -> $HOME_NET 9200 (msg:"GENERIC POLICY inbound search/index service exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900507; rev:1; metadata: policy exposed_service, protocol Search_Index, confidence Medium, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# 07_TIME_PROTOCOL_VISIBILITY
+# ----------------------------------------------------------------------------
+
+alert udp $HOME_NET any -> $EXTERNAL_NET 123 (msg:"GENERIC POLICY outbound NTP observed"; detection_filter:track by_src, count 1, seconds 600; classtype:misc-activity; sid:9900601; rev:1; metadata: policy time_integrity, protocol NTP, confidence Low, response_action alert_only;)
+
+alert udp $EXTERNAL_NET any -> $HOME_NET 123 (msg:"GENERIC POLICY inbound NTP attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900602; rev:1; metadata: policy time_integrity, protocol NTP, confidence Medium, response_action alert_only;)
+
+
+# ----------------------------------------------------------------------------
+# END OF FILE
+# ----------------------------------------------------------------------------
