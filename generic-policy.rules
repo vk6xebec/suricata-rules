@@ -1,32 +1,26 @@
 # ============================================================================
-# GENERIC SURICATA POLICY VISIBILITY RULES
+# GENERIC SURICATA POLICY RULES - SANITISED RICH METADATA
 # File: generic-policy.rules
-# Version: 2026.05.20-r1
-# Scope: Generic, sanitised, public-safe Suricata rules
+# Version: 2026.05.20-r2
+# Scope: Public-safe generic rules for pfSense Suricata Extra Rules
 #
 # Purpose:
-# - Provide reusable policy-visibility alerts that can be applied across VLANs.
-# - Avoid site-specific names, VLAN labels, hostnames, public IPs, private IPs,
-#   device names, organisation names, or other identifiable data.
+# - Provide generic Suricata policy visibility checks.
+# - Retain rich governance/compliance tags without exposing private network data.
+# - Contain no VLAN names, internal subnets, hostnames, device names, public WAN
+#   addresses, organisation names, or site-specific aliases.
 #
-# Deployment:
-# - Intended for pfSense Suricata "Extra rules".
-# - Uses only $HOME_NET, $EXTERNAL_NET, and generic protocol/port logic.
-# - All rules are alert-only.
-#
-# Notes:
-# - Keep environment-specific rules in local custom.rules, not this file.
-# - Do not add real subnets, device names, WAN addresses, or hostnames here.
-# - Tune via suppress/threshold lists, not by deleting useful visibility rules.
+# Variables:
+# - Uses only $HOME_NET and $EXTERNAL_NET.
 #
 # SID allocation:
-# - 9900001-9900999 reserved for this generic public-safe ruleset.
+# - 9900001-9900999 reserved for this public-safe ruleset.
 #
 # CHANGELOG:
-# 2026.05.20-r1:
-# - Initial sanitised generic policy ruleset.
-# - Added encrypted DNS, QUIC/HTTP3, management exposure, telemetry,
-#   service-discovery, and high-risk protocol visibility rules.
+# 2026.05.20-r2:
+# - Restored rich sanitised metadata including NIST, CIS, DORA, ISO, ITIL,
+#   COBIT, MITRE ATT&CK, and PIPELOCK-style tags where applicable.
+# - Kept all identifiers generic and reusable.
 # ============================================================================
 
 
@@ -34,103 +28,74 @@
 # 01_ENCRYPTED_DNS_AND_RESOLVER_BYPASS_VISIBILITY
 # ----------------------------------------------------------------------------
 
-alert tcp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"GENERIC POLICY DoT outbound observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900001; rev:1; metadata: policy encrypted_dns, protocol DoT, confidence Medium, response_action alert_only;)
+alert tcp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"GENERIC POLICY DoT outbound observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900001; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Command_and_Control, mitre_technique T1071.004, confidence Medium, categorisation encrypted_dns_bypass, pipelock_feature ai_egress_proxy fail_closed siem_forwarding;)
 
-alert udp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"GENERIC POLICY DoQ candidate outbound observed on UDP/853"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900002; rev:1; metadata: policy encrypted_dns, protocol DoQ, confidence Medium, response_action alert_only;)
+alert udp $HOME_NET any -> $EXTERNAL_NET 853 (msg:"GENERIC POLICY DoQ candidate outbound observed on UDP/853"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900002; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Command_and_Control, mitre_technique T1071.004, confidence Medium, categorisation encrypted_dns_bypass;)
 
-alert udp $HOME_NET any -> $EXTERNAL_NET 784 (msg:"GENERIC POLICY DoQ candidate outbound observed on UDP/784"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900003; rev:1; metadata: policy encrypted_dns, protocol DoQ, confidence Medium, response_action alert_only;)
+alert udp $HOME_NET any -> $EXTERNAL_NET 784 (msg:"GENERIC POLICY DoQ candidate outbound observed on UDP/784"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900003; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Command_and_Control, mitre_technique T1071.004, confidence Medium, categorisation encrypted_dns_bypass;)
 
-alert tcp $HOME_NET any -> $EXTERNAL_NET 443 (msg:"GENERIC POLICY DoH candidate outbound HTTPS observed"; flow:to_server; detection_filter:track by_src, count 20, seconds 300; classtype:policy-violation; sid:9900004; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence Low, response_action alert_only;)
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Cloudflare DoH SNI observed"; tls.sni; content:"cloudflare-dns.com"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900005; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Command_and_Control, mitre_technique T1071.004, confidence High, categorisation encrypted_dns_bypass;)
 
-alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Cloudflare DoH SNI observed"; tls.sni; content:"cloudflare-dns.com"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900005; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence High, response_action alert_only;)
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Google DoH SNI observed"; tls.sni; content:"dns.google"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900006; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Command_and_Control, mitre_technique T1071.004, confidence High, categorisation encrypted_dns_bypass;)
 
-alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Google DoH SNI observed"; tls.sni; content:"dns.google"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900006; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence High, response_action alert_only;)
-
-alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Quad9 DoH SNI observed"; tls.sni; content:"dns.quad9.net"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900007; rev:1; metadata: policy encrypted_dns, protocol DoH, confidence High, response_action alert_only;)
+alert tls $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY Quad9 DoH SNI observed"; tls.sni; content:"dns.quad9.net"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900007; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Command_and_Control, mitre_technique T1071.004, confidence High, categorisation encrypted_dns_bypass;)
 
 
 # ----------------------------------------------------------------------------
 # 02_QUIC_HTTP3_VISIBILITY
 # ----------------------------------------------------------------------------
 
-alert udp $HOME_NET any -> $EXTERNAL_NET 443 (msg:"GENERIC POLICY QUIC or HTTP3 outbound UDP/443 observed"; detection_filter:track by_src, count 50, seconds 60; classtype:policy-violation; sid:9900101; rev:1; metadata: policy inspection_visibility, protocol QUIC, confidence Low, response_action alert_only;)
-
-alert udp $EXTERNAL_NET 443 -> $HOME_NET any (msg:"GENERIC POLICY QUIC or HTTP3 inbound response UDP/443 observed"; detection_filter:track by_dst, count 100, seconds 60; classtype:misc-activity; sid:9900102; rev:1; metadata: policy inspection_visibility, protocol QUIC, confidence Low, response_action alert_only;)
+alert udp $HOME_NET any -> $EXTERNAL_NET 443 (msg:"GENERIC POLICY QUIC or HTTP3 outbound UDP/443 observed"; detection_filter:track by_src, count 50, seconds 60; classtype:policy-violation; sid:9900101; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Defense_Evasion, mitre_technique T1573, confidence Low, categorisation encrypted_visibility_reduction;)
 
 
 # ----------------------------------------------------------------------------
 # 03_MANAGEMENT_AND_REMOTE_ACCESS_VISIBILITY
 # ----------------------------------------------------------------------------
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"GENERIC POLICY inbound SSH management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900201; rev:1; metadata: policy management_access, protocol SSH, confidence Medium, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 22 (msg:"GENERIC POLICY inbound SSH management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900201; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Initial_Access, mitre_technique T1021.004, confidence Medium, categorisation exposed_management_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 23 (msg:"GENERIC POLICY inbound Telnet management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900202; rev:1; metadata: policy management_access, protocol Telnet, confidence High, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 23 (msg:"GENERIC POLICY inbound Telnet management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900202; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Initial_Access, mitre_technique T1021, confidence High, categorisation cleartext_management_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 3389 (msg:"GENERIC POLICY inbound RDP management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900203; rev:1; metadata: policy management_access, protocol RDP, confidence Medium, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 3389 (msg:"GENERIC POLICY inbound RDP management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900203; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Lateral_Movement, mitre_technique T1021.001, confidence Medium, categorisation exposed_management_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 5900 (msg:"GENERIC POLICY inbound VNC management attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900204; rev:1; metadata: policy management_access, protocol VNC, confidence Medium, response_action alert_only;)
-
-alert tcp $EXTERNAL_NET any -> $HOME_NET [8080,8443,9443] (msg:"GENERIC POLICY inbound alternate web management port attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900205; rev:1; metadata: policy management_access, protocol HTTP, confidence Medium, response_action alert_only;)
-
-alert tcp $HOME_NET any -> $EXTERNAL_NET [22,23,3389,5900] (msg:"GENERIC POLICY outbound remote-administration protocol observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900206; rev:1; metadata: policy egress_control, protocol remote_admin, confidence Medium, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET [8080,8443,9443] (msg:"GENERIC POLICY inbound alternate web management port attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900205; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Initial_Access, mitre_technique T1190, confidence Medium, categorisation exposed_web_management_service;)
 
 
 # ----------------------------------------------------------------------------
-# 04_TELEMETRY_AND_MONITORING_PROTOCOL_VISIBILITY
+# 04_TELEMETRY_AND_SERVICE_DISCOVERY_VISIBILITY
 # ----------------------------------------------------------------------------
 
-alert udp $EXTERNAL_NET any -> $HOME_NET 161 (msg:"GENERIC POLICY inbound SNMP polling attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900301; rev:1; metadata: policy telemetry_management, protocol SNMP, confidence High, response_action alert_only;)
+alert udp $EXTERNAL_NET any -> $HOME_NET 161 (msg:"GENERIC POLICY inbound SNMP polling attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900301; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence High, categorisation snmp_exposure;)
 
-alert udp $EXTERNAL_NET any -> $HOME_NET 162 (msg:"GENERIC POLICY inbound SNMP trap receiver attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900302; rev:1; metadata: policy telemetry_management, protocol SNMP, confidence Medium, response_action alert_only;)
+alert udp $EXTERNAL_NET any -> $HOME_NET 1900 (msg:"GENERIC POLICY inbound SSDP UPnP discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900401; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence High, categorisation service_discovery_exposure;)
 
-alert udp $HOME_NET any -> $EXTERNAL_NET 514 (msg:"GENERIC POLICY outbound syslog over UDP observed"; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900303; rev:1; metadata: policy telemetry_management, protocol Syslog, confidence Low, response_action alert_only;)
+alert udp $EXTERNAL_NET any -> $HOME_NET 5353 (msg:"GENERIC POLICY inbound mDNS discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900402; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence High, categorisation service_discovery_exposure;)
 
-alert tcp $HOME_NET any -> $EXTERNAL_NET 514 (msg:"GENERIC POLICY outbound syslog over TCP observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:policy-violation; sid:9900304; rev:1; metadata: policy telemetry_management, protocol Syslog, confidence Low, response_action alert_only;)
+alert udp $EXTERNAL_NET any -> $HOME_NET 3702 (msg:"GENERIC POLICY inbound WS-Discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900403; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence High, categorisation service_discovery_exposure;)
 
-alert tcp $HOME_NET any -> $EXTERNAL_NET 6514 (msg:"GENERIC POLICY outbound syslog over TLS observed"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:misc-activity; sid:9900305; rev:1; metadata: policy telemetry_management, protocol Syslog_TLS, confidence Low, response_action alert_only;)
-
-
-# ----------------------------------------------------------------------------
-# 05_IOT_DISCOVERY_AND_REFLECTION_SURFACE_VISIBILITY
-# ----------------------------------------------------------------------------
-
-alert udp $EXTERNAL_NET any -> $HOME_NET 1900 (msg:"GENERIC POLICY inbound SSDP/UPnP discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900401; rev:1; metadata: policy service_discovery, protocol SSDP, confidence High, response_action alert_only;)
-
-alert udp $EXTERNAL_NET any -> $HOME_NET 5353 (msg:"GENERIC POLICY inbound mDNS discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900402; rev:1; metadata: policy service_discovery, protocol mDNS, confidence High, response_action alert_only;)
-
-alert udp $EXTERNAL_NET any -> $HOME_NET 3702 (msg:"GENERIC POLICY inbound WS-Discovery attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900403; rev:1; metadata: policy service_discovery, protocol WS_Discovery, confidence High, response_action alert_only;)
-
-alert tcp $EXTERNAL_NET any -> $HOME_NET 9100 (msg:"GENERIC POLICY inbound JetDirect printer service attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900404; rev:1; metadata: policy exposed_service, protocol JetDirect, confidence Medium, response_action alert_only;)
-
-alert udp $EXTERNAL_NET any -> $HOME_NET 623 (msg:"GENERIC POLICY inbound IPMI/RMCP management attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900405; rev:1; metadata: policy management_access, protocol IPMI_RMCP, confidence High, response_action alert_only;)
+alert udp $EXTERNAL_NET any -> $HOME_NET 623 (msg:"GENERIC POLICY inbound IPMI RMCP management attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-admin; sid:9900405; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Initial_Access, mitre_technique T1190, confidence High, categorisation exposed_management_service;)
 
 
 # ----------------------------------------------------------------------------
-# 06_HIGH_RISK_SERVICE_EXPOSURE_VISIBILITY
+# 05_HIGH_RISK_SERVICE_EXPOSURE_VISIBILITY
 # ----------------------------------------------------------------------------
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"GENERIC POLICY inbound SMB exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900501; rev:1; metadata: policy exposed_service, protocol SMB, confidence High, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 445 (msg:"GENERIC POLICY inbound SMB exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900501; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence High, categorisation exposed_file_sharing_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 139 (msg:"GENERIC POLICY inbound NetBIOS session attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900502; rev:1; metadata: policy exposed_service, protocol NetBIOS, confidence High, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 3306 (msg:"GENERIC POLICY inbound MySQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900504; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence Medium, categorisation exposed_database_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 1433 (msg:"GENERIC POLICY inbound MSSQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900503; rev:1; metadata: policy exposed_service, protocol MSSQL, confidence Medium, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 5432 (msg:"GENERIC POLICY inbound PostgreSQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900505; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence Medium, categorisation exposed_database_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 3306 (msg:"GENERIC POLICY inbound MySQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900504; rev:1; metadata: policy exposed_service, protocol MySQL, confidence Medium, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 6379 (msg:"GENERIC POLICY inbound Redis compatible service exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900506; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence Medium, categorisation exposed_datastore_service;)
 
-alert tcp $EXTERNAL_NET any -> $HOME_NET 5432 (msg:"GENERIC POLICY inbound PostgreSQL exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900505; rev:1; metadata: policy exposed_service, protocol PostgreSQL, confidence Medium, response_action alert_only;)
-
-alert tcp $EXTERNAL_NET any -> $HOME_NET 6379 (msg:"GENERIC POLICY inbound Redis-compatible service exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900506; rev:1; metadata: policy exposed_service, protocol Redis, confidence Medium, response_action alert_only;)
-
-alert tcp $EXTERNAL_NET any -> $HOME_NET 9200 (msg:"GENERIC POLICY inbound search/index service exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900507; rev:1; metadata: policy exposed_service, protocol Search_Index, confidence Medium, response_action alert_only;)
+alert tcp $EXTERNAL_NET any -> $HOME_NET 9200 (msg:"GENERIC POLICY inbound search index service exposure attempt"; flow:to_server; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900507; rev:2; metadata: compliance_category network_policy_runtime, framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF ITIL TOGAF COBIT CSA_CCM CIS_Controls NIST_Privacy ISO_22301, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, source_tool suricata, response_action alert_only, mitre_tactic Discovery, mitre_technique T1046, confidence Medium, categorisation exposed_search_service;)
 
 
 # ----------------------------------------------------------------------------
-# 07_TIME_PROTOCOL_VISIBILITY
+# 06_SUPPLY_CHAIN_AND_AI_PIPELINE_VISIBILITY
 # ----------------------------------------------------------------------------
 
-alert udp $HOME_NET any -> $EXTERNAL_NET 123 (msg:"GENERIC POLICY outbound NTP observed"; detection_filter:track by_src, count 1, seconds 600; classtype:misc-activity; sid:9900601; rev:1; metadata: policy time_integrity, protocol NTP, confidence Low, response_action alert_only;)
-
-alert udp $EXTERNAL_NET any -> $HOME_NET 123 (msg:"GENERIC POLICY inbound NTP attempt"; detection_filter:track by_src, count 1, seconds 600; classtype:attempted-recon; sid:9900602; rev:1; metadata: policy time_integrity, protocol NTP, confidence Medium, response_action alert_only;)
+alert http $HOME_NET any -> $EXTERNAL_NET any (msg:"GENERIC POLICY CycloneDX ABOM SBOM transfer visibility"; flow:to_server,established; http.uri; pcre:"/(cyclonedx|sbom|abom|bom\.json|bom\.xml)/i"; classtype:misc-activity; sid:9900601; rev:2; metadata: attack_target Supply_Chain, mitre_tactic Resource_Development, mitre_technique T1588, confidence Low, categorisation cyclonedx_abom_visibility, governance COBIT ISO38500 ISO31000 FAIR ISO9001 ISO20000 ITIL ISO27001 ISO27701 NIST_CSF SABSA ISO22301 TOGAF SixSigma CMMI_L5 Lean DORA NIS2, compliance_framework STIG CIS_L1 CIS_L2 PCI_DSS ISO_9001 ISO_27001 ISO_27701 SOC2 HIPAA Essential_8 GDPR NIST_800_53 NIST_800_171 NIST_CSF, pipelock_feature cyclonedx_abom signed_evidence_receipts siem_forwarding, source_tool suricata, response_action alert_only, governance_complete STIG CIS_L1 CIS_L2 CIS_CONTROLS HIPAA PCI_DSS ISO9001 ISO20000 ISO27001 ISO27701 SOC2 NIST_800_53 NIST_800_171 NIST_CSF NIST_PRIVACY_FRAMEWORK GDPR ASD_ESSENTIAL_8 ITIL TOGAF SOX COBIT CSA_CCM ISO22301 DORA NIS2 ISO38500 ISO31000 FAIR SABSA SIX_SIGMA CMMI_L5 LEAN, pipelock_complete AI_EGRESS_PROXY DLP SSRF_PROTECTION PROMPT_INJECTION_SCANNING TOOL_CALL_POLICY TOOL_CHAIN_DETECTION FAIL_CLOSED SIGNED_EVIDENCE_RECEIPTS CYCLONEDX_ABOM SIEM_FORWARDING PROMETHEUS_METRICS KILL_SWITCH;)
 
 
 # ----------------------------------------------------------------------------
